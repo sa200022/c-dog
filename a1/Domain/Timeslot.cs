@@ -49,6 +49,21 @@ public class Timeslot
         Status = TimeslotStatus.OnSale;
     }
 
+    public void Update(
+        DateTimeOffset startTime,
+        DateTimeOffset endTime,
+        decimal basePrice,
+        int? capacity)
+    {
+        if (endTime <= startTime)
+            throw new ArgumentException("EndTime must be greater than StartTime.", nameof(endTime));
+
+        StartTime = startTime;
+        EndTime = endTime;
+        BasePrice = basePrice;
+        AdjustCapacity(capacity);
+    }
+
     public void AdjustCapacity(int? newCapacity)
     {
         if (newCapacity.HasValue && newCapacity.Value < 0)

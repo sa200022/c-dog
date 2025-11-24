@@ -22,6 +22,13 @@ public class TimeslotService
             .ToListAsync();
     }
 
+    public async Task<Timeslot?> GetByIdAsync(Guid id)
+    {
+        return await _db.Timeslots
+            .Include(x => x.Seats)
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
     public async Task<Timeslot> CreateAsync(Timeslot entity)
     {
         _db.Timeslots.Add(entity);

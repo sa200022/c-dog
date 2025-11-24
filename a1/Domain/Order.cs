@@ -10,15 +10,12 @@ public class Order
 
     public string OrderNumber { get; private set; } = null!;
 
-    public string? UserId { get; private set; }
     public string CustomerEmail { get; private set; } = null!;
     public string CustomerName { get; private set; } = null!;
 
-    public Guid ActivityId { get; private set; }
-    public Guid TimeslotId { get; private set; }
+    public string Currency { get; private set; } = "TWD";
 
     public decimal TotalAmount { get; private set; }
-    public string Currency { get; private set; } = "TWD";
 
     public OrderStatus Status { get; private set; }
 
@@ -33,50 +30,41 @@ public class Order
 
     public Order(
         Guid id,
-        string orderNumber,
-        string? userId,
         string customerEmail,
         string customerName,
-        Guid activityId,
-        Guid timeslotId,
-        string currency)
+        string currency,
+        IEnumerable<OrderItem> items)
     {
         Id = id;
-        OrderNumber = orderNumber;
-        UserId = userId;
+        OrderNumber = GenerateOrderNumber(id);
         CustomerEmail = customerEmail;
         CustomerName = customerName;
-        ActivityId = activityId;
-        TimeslotId = timeslotId;
-        Currency = currency;
-        Status = OrderStatus.PendingPayment;
+        Currency = string.IsNullOrWhiteSpace(currency) ? "TWD" : currency;
+
+        Items = items.ToList();
+        if (Items.Count == 0)
+            throw new InvalidOperationException("Order must contain at least one item.");
+
+        RecalculateTotal();
+
+        Status = OrderStatus.Pending;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void AddItem(Guid? seatId, int quantity, decimal unitPrice)
+    private static string GenerateOrderNumber(Guid id)
     {
-        if (quantity <= 0)
-            throw new ArgumentOutOfRangeException(nameof(quantity));
-
-        var item = new OrderItem(
-            Guid.NewGuid(),
-            Id,
-            seatId,
-            quantity,
-            unitPrice);
-
-        Items.Add(item);
-        RecalculateTotal();
+        // 簡單一點：年月日 + 前 8 碼
+        return $"ORD-{DateTime.UtcNow:yyyyMMdd}-{id.ToString("N")[..8].ToUpperInvariant()}";
     }
 
     private void RecalculateTotal()
     {
-        TotalAmount = Items.Sum(i => i.LineAmount);
+        TotalAmount = Items.Sum(x => x.LineAmount);
     }
 
     public void MarkPaid()
     {
-        if (Status != OrderStatus.PendingPayment)
+        if (Status != OrderStatus.Pending)
             throw new InvalidOperationException("Only pending orders can be marked as paid.");
 
         Status = OrderStatus.Paid;
@@ -85,27 +73,19 @@ public class Order
 
     public void Cancel()
     {
-        if (Status == OrderStatus.Cancelled)
+        if (Status is OrderStatus.Cancelled or OrderStatus.Refunded)
             return;
 
-        if (Status is OrderStatus.Paid or OrderStatus.PendingPayment)
-        {
-            Status = OrderStatus.Cancelled;
-            CancelledAt = DateTimeOffset.UtcNow;
-        }
-        else
-        {
-            throw new InvalidOperationException($"Cannot cancel order in status {Status}.");
-        }
+        Status = OrderStatus.Cancelled;
+        CancelledAt = DateTimeOffset.UtcNow;
     }
 
-    public void MarkRefunded(bool partial)
+    public void MarkRefunded()
     {
-        if (partial)
-            Status = OrderStatus.PartiallyRefunded;
-        else
-            Status = OrderStatus.Refunded;
+        if (Status != OrderStatus.Paid)
+            throw new InvalidOperationException("Only paid orders can be refunded.");
 
+        Status = OrderStatus.Refunded;
         RefundedAt = DateTimeOffset.UtcNow;
     }
 }
@@ -117,29 +97,34 @@ public class OrderItem
     public Guid OrderId { get; private set; }
     public Order Order { get; private set; } = null!;
 
+    public Guid TimeslotId { get; private set; }
+
     public Guid? SeatId { get; private set; }
 
-    public int Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
-    public decimal LineAmount { get; private set; }
+
+    public int Quantity { get; private set; }
+
+    public decimal LineAmount => UnitPrice * Quantity;
 
     private OrderItem() { }
 
     public OrderItem(
         Guid id,
-        Guid orderId,
+        Guid timeslotId,
         Guid? seatId,
-        int quantity,
-        decimal unitPrice)
+        decimal unitPrice,
+        int quantity)
     {
+        if (unitPrice < 0)
+            throw new ArgumentOutOfRangeException(nameof(unitPrice));
         if (quantity <= 0)
             throw new ArgumentOutOfRangeException(nameof(quantity));
 
         Id = id;
-        OrderId = orderId;
+        TimeslotId = timeslotId;
         SeatId = seatId;
-        Quantity = quantity;
         UnitPrice = unitPrice;
-        LineAmount = unitPrice * quantity;
+        Quantity = quantity;
     }
 }

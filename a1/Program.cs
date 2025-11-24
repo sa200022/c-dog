@@ -22,6 +22,8 @@ var app = builder.Build();
 // 之後所有 Minimal API 都集中在 Api/*Endpoints.cs
 app.MapActivityEndpoints();
 app.MapTimeslotEndpoints();
+app.MapOrderEndpoints();
+
 
 app.MapGet("/", () => "Ticketing API Running (.NET 9 Minimal API)");
 
