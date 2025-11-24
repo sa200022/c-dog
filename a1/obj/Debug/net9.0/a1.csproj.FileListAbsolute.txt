@@ -117,3 +117,8 @@ C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\obj\Debug\net9.0\refint\a1.dll
 C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\obj\Debug\net9.0\a1.pdb
 C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\obj\Debug\net9.0\a1.genruntimeconfig.cache
 C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\obj\Debug\net9.0\ref\a1.dll
+C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\bin\Debug\net9.0\Microsoft.OpenApi.dll
+C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\DogbearZ\Documents\GitHub\c-dog\a1\obj\Debug\net9.0\a1.MvcApplicationPartsAssemblyInfo.cs
