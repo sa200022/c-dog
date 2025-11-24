@@ -1,4 +1,4 @@
-﻿using Ticketing.Domain;
+using Ticketing.Domain;
 using Ticketing.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,6 +13,11 @@ public class NotificationService
         _db = db;
     }
 
+    public async Task<ItineraryNotification?> GetByIdAsync(Guid id)
+    {
+        return await _db.ItineraryNotifications.FirstOrDefaultAsync(n => n.Id == id);
+    }
+
     public async Task<List<ItineraryNotification>> GetByOrderAsync(Guid orderId)
     {
         return await _db.ItineraryNotifications
@@ -21,8 +26,15 @@ public class NotificationService
             .ToListAsync();
     }
 
-    public async Task<ItineraryNotification> CreateAsync(ItineraryNotification n)
+    public async Task<ItineraryNotification> ScheduleAsync(Guid orderId, DateTimeOffset scheduledSendTime, NotificationChannel channel, string payload)
     {
+        var n = new ItineraryNotification(
+            Guid.NewGuid(),
+            orderId,
+            scheduledSendTime,
+            channel,
+            payload);
+
         _db.ItineraryNotifications.Add(n);
         await _db.SaveChangesAsync();
         return n;

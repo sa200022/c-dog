@@ -12,6 +12,9 @@ public class OrderItemConfig : IEntityTypeConfiguration<OrderItem>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.TimeslotId)
+            .IsRequired();
+
         builder.Property(x => x.UnitPrice)
             .HasColumnType("numeric(18,2)");
 

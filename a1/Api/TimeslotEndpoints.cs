@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Ticketing.Application;
 using Ticketing.Domain;
 
@@ -41,10 +42,15 @@ public static class TimeslotEndpoints
         app.MapPost("/activities/{activityId:guid}/timeslots", async (
             Guid activityId,
             CreateTimeslotRequest request,
+            Ticketing.Infrastructure.TicketingDbContext db,
             TimeslotService service) =>
         {
             if (request.BasePrice < 0)
                 return Results.BadRequest(new ApiError("Timeslot.InvalidPrice", "BasePrice must be >= 0."));
+
+            var activityExists = await db.Activities.AnyAsync(a => a.Id == activityId);
+            if (!activityExists)
+                return Results.NotFound(new ApiError("Activity.NotFound", "Activity not found."));
 
             var timeslot = new Timeslot(
                 Guid.NewGuid(),

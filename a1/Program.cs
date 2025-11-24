@@ -16,6 +16,7 @@ builder.Services.AddScoped<SeatService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<RefundService>();
 builder.Services.AddScoped<NotificationService>();
+builder.Services.AddScoped<ReportService>();
 
 var app = builder.Build();
 
@@ -23,6 +24,10 @@ var app = builder.Build();
 app.MapActivityEndpoints();
 app.MapTimeslotEndpoints();
 app.MapOrderEndpoints();
+app.MapSeatEndpoints();
+app.MapRefundEndpoints();
+app.MapNotificationEndpoints();
+app.MapReportEndpoints();
 
 
 app.MapGet("/", () => "Ticketing API Running (.NET 9 Minimal API)");

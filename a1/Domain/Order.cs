@@ -8,14 +8,19 @@ public class Order
 {
     public Guid Id { get; private set; }
 
+    public Guid ActivityId { get; private set; }
+    public Guid TimeslotId { get; private set; }
+
     public string OrderNumber { get; private set; } = null!;
 
+    public string? UserId { get; private set; }
     public string CustomerEmail { get; private set; } = null!;
     public string CustomerName { get; private set; } = null!;
 
     public string Currency { get; private set; } = "TWD";
 
     public decimal TotalAmount { get; private set; }
+    public decimal RefundedAmount { get; private set; }
 
     public OrderStatus Status { get; private set; }
 
@@ -30,13 +35,19 @@ public class Order
 
     public Order(
         Guid id,
+        Guid activityId,
+        Guid timeslotId,
+        string? userId,
         string customerEmail,
         string customerName,
         string currency,
         IEnumerable<OrderItem> items)
     {
         Id = id;
+        ActivityId = activityId;
+        TimeslotId = timeslotId;
         OrderNumber = GenerateOrderNumber(id);
+        UserId = userId;
         CustomerEmail = customerEmail;
         CustomerName = customerName;
         Currency = string.IsNullOrWhiteSpace(currency) ? "TWD" : currency;
@@ -45,9 +56,13 @@ public class Order
         if (Items.Count == 0)
             throw new InvalidOperationException("Order must contain at least one item.");
 
+        if (Items.Any(x => x.TimeslotId != TimeslotId))
+            throw new InvalidOperationException("All order items must belong to the same timeslot as the order.");
+
         RecalculateTotal();
 
-        Status = OrderStatus.Pending;
+        RefundedAmount = 0;
+        Status = OrderStatus.PendingPayment;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 
@@ -64,8 +79,8 @@ public class Order
 
     public void MarkPaid()
     {
-        if (Status != OrderStatus.Pending)
-            throw new InvalidOperationException("Only pending orders can be marked as paid.");
+        if (Status != OrderStatus.PendingPayment)
+            throw new InvalidOperationException("Only pending payment orders can be marked as paid.");
 
         Status = OrderStatus.Paid;
         PaidAt = DateTimeOffset.UtcNow;
@@ -73,20 +88,27 @@ public class Order
 
     public void Cancel()
     {
-        if (Status is OrderStatus.Cancelled or OrderStatus.Refunded)
-            return;
+        if (Status is OrderStatus.Cancelled or OrderStatus.Refunded or OrderStatus.PartiallyRefunded)
+            throw new InvalidOperationException("Order already cancelled or refunded.");
 
         Status = OrderStatus.Cancelled;
         CancelledAt = DateTimeOffset.UtcNow;
     }
 
-    public void MarkRefunded()
+    public void ApplyRefund(decimal amount)
     {
-        if (Status != OrderStatus.Paid)
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+        if (Status is not (OrderStatus.Paid or OrderStatus.PartiallyRefunded))
             throw new InvalidOperationException("Only paid orders can be refunded.");
+        if (RefundedAmount + amount > TotalAmount)
+            throw new InvalidOperationException("Refund amount exceeds paid total.");
 
-        Status = OrderStatus.Refunded;
+        RefundedAmount += amount;
         RefundedAt = DateTimeOffset.UtcNow;
+        Status = RefundedAmount == TotalAmount
+            ? OrderStatus.Refunded
+            : OrderStatus.PartiallyRefunded;
     }
 }
 
@@ -105,7 +127,7 @@ public class OrderItem
 
     public int Quantity { get; private set; }
 
-    public decimal LineAmount => UnitPrice * Quantity;
+    public decimal LineAmount { get; private set; }
 
     private OrderItem() { }
 
@@ -126,5 +148,6 @@ public class OrderItem
         SeatId = seatId;
         UnitPrice = unitPrice;
         Quantity = quantity;
+        LineAmount = unitPrice * quantity;
     }
 }
